@@ -1,28 +1,49 @@
 package com.demo.jmsdemo.config;
 
+import jakarta.jms.ConnectionFactory;
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jms.annotation.EnableJms;
 import org.springframework.jms.config.DefaultJmsListenerContainerFactory;
 import org.springframework.jms.core.JmsTemplate;
 
-import jakarta.jms.ConnectionFactory;
-
 @Configuration
 @EnableJms
 public class JmsConfig {
+    @Value("${spring.activemq.broker-url}")
+    private String brokerUrl;
+    @Value("${spring.activemq.user}")
+    private String user;
+    @Value("${spring.activemq.password}")
+    private String password;
 
-    // Configure JmsTemplate for topics (pub-sub)
+    @Bean
+    public ConnectionFactory connectionFactory() {
+        ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory();
+        connectionFactory.setBrokerURL(brokerUrl);
+        connectionFactory.setUserName(user);
+        connectionFactory.setPassword(password);
+        return connectionFactory;
+    }
+
+    @Bean
+    public JmsTemplate jmsQueueTemplate(ConnectionFactory connectionFactory) {
+        JmsTemplate jmsTemplate = new JmsTemplate();
+        jmsTemplate.setConnectionFactory(connectionFactory);
+        jmsTemplate.setPubSubDomain(false); // Queue mode
+        return jmsTemplate;
+    }
+
     @Bean
     public JmsTemplate jmsTopicTemplate(ConnectionFactory connectionFactory) {
         JmsTemplate jmsTemplate = new JmsTemplate();
         jmsTemplate.setConnectionFactory(connectionFactory);
-        jmsTemplate.setPubSubDomain(true); // Enable pub-sub for topics
+        jmsTemplate.setPubSubDomain(true); // Topic mode
         return jmsTemplate;
     }
 
-    // Configure listener factory for queues
     @Bean
     public DefaultJmsListenerContainerFactory queueListenerFactory(ConnectionFactory connectionFactory) {
         DefaultJmsListenerContainerFactory factory = new DefaultJmsListenerContainerFactory();
@@ -31,7 +52,6 @@ public class JmsConfig {
         return factory;
     }
 
-    // Configure listener factory for topics
     @Bean
     public DefaultJmsListenerContainerFactory topicListenerFactory(ConnectionFactory connectionFactory) {
         DefaultJmsListenerContainerFactory factory = new DefaultJmsListenerContainerFactory();
